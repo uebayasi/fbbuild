@@ -1,17 +1,20 @@
 #! /bin/sh
 
-topdir=${HOME}/src/freebsd
+# XXX unprivileged?
+
 branch=HEAD
+machine=mips
+machine_arch=mips64
+kernel=OCTEON1
+
+topdir=${HOME}/src/freebsd
 srcdir=${topdir}/src.${branch}/src
-wrkdir=${topdir}/work.${branch}/mips64
+wrkdir=${topdir}/work.${branch}/${machine_arch}
+
 objdir=${wrkdir}/obj
 dstdir=${wrkdir}/dest
 nfsrootdir=${wrkdir}/nfs
 tftpbootdir=${wrkdir}/tftpboot
-
-machine=mips
-machine_arch=mips64
-kernel=OCTEON1
 
 envs="
 	SRCROOT=${srcdir}
@@ -31,7 +34,6 @@ makeflags="
 make="env ${envs} make ${makeflags}"
 
 all() {
-	cd "${SRCROOT}"
 	${make} kernel-toolchain
 	${make} buildkernel
 	sudo -E \
@@ -41,17 +43,16 @@ all() {
 	${make} installworld DESTDIR=${nfsrootdir}
 	sudo -E \
 	${make} distribution DESTDIR=${nfsrootdir}
-	cd "${OLDPWD}"
 }
 
 set -e
 
+cd "${SRCROOT}"
 if [ $# -eq 0 ]; then
 	all
 else
 	for cmd in $@; do
-		cd "${SRCROOT}"
 		${make} "${cmd}"
-		cd "${OLDPWD}"
 	done
 fi
+cd "${OLDPWD}"
