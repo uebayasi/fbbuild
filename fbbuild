@@ -1,0 +1,57 @@
+#! /bin/sh
+
+topdir=${HOME}/src/freebsd
+branch=HEAD
+srcdir=${topdir}/src.${branch}/src
+wrkdir=${topdir}/work.${branch}/mips64
+objdir=${wrkdir}/obj
+dstdir=${wrkdir}/dest
+nfsrootdir=${wrkdir}/nfs
+tftpbootdir=${wrkdir}/tftpboot
+
+machine=mips
+machine_arch=mips64
+kernel=OCTEON1
+
+envs="
+	SRCROOT=${srcdir}
+	TARGET=${machine}
+	TARGET_ARCH=${machine_arch}
+	KERNCONF=${kernel}
+	MAKEOBJDIRPREFIX=${objdir}
+	NFSROOT=${nfsrootdir}
+	TFTPBOOT=${tftpbootdir}
+"
+
+makeflags="
+	-DNO_CLEAN
+	-DNO_KERNELCLEAN
+"
+
+make="env ${envs} make ${makeflags}"
+
+all() {
+	cd "${SRCROOT}"
+	${make} kernel-toolchain
+	${make} buildkernel
+	sudo -E \
+	${make} installkernel DESTDIR=${tftpbootdir}
+	${make} buildworld
+	sudo -E \
+	${make} installworld DESTDIR=${nfsrootdir}
+	sudo -E \
+	${make} distribution DESTDIR=${nfsrootdir}
+	cd "${OLDPWD}"
+}
+
+set -e
+
+if [ $# -eq 0 ]; then
+	all
+else
+	for cmd in $@; do
+		cd "${SRCROOT}"
+		${make} "${cmd}"
+		cd "${OLDPWD}"
+	done
+fi
